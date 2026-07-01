@@ -6,7 +6,7 @@ import { catchError, Observable, of } from 'rxjs';
   providedIn: 'root',
 })
 export class DeliveryApi {
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   createDelivery(payload: any): Observable<any> {
     return this.http
@@ -14,6 +14,16 @@ export class DeliveryApi {
       .pipe(
         catchError((err) =>
           of({ error: err?.error?.error ?? 'Ошибка при создании заявки' })
+        )
+      );
+  }
+
+  getDeliveryInfo(id: number): Observable<any> {
+    return this.http
+      .get<any>(`https://testologia.ru/delivery/info`, { params: { id } })
+      .pipe(
+        catchError((err) =>
+          of({ error: err?.error?.error ?? 'Ошибка при получении статуса' })
         )
       );
   }
