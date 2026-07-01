@@ -1,8 +1,9 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { Header } from '../../header/header';
 import { DELIVERY_SIZES, DELIVERY_SPEEDS } from './order.config';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UpperCasePipe } from '@angular/common';
+import { DeliveryApi } from '../../services/delivery-api';
 
 declare var ymaps: any;
 
@@ -12,7 +13,7 @@ declare var ymaps: any;
     templateUrl: './order.html',
     styleUrl: './order.css',
 })
-export class Order {
+export class Order implements OnInit {
     public readonly sizes = DELIVERY_SIZES;
     public readonly speeds = DELIVERY_SPEEDS;
 
@@ -25,7 +26,7 @@ export class Order {
     public orderId: any = signal(null);
     public calculationResult: any = signal(null);
 
-    constructor(private formBuilder: FormBuilder) {
+    constructor(private formBuilder: FormBuilder, private deliveryApi: DeliveryApi) {
         this.routeForm = this.formBuilder.group({
             from: ['', Validators.required],
             to: ['', Validators.required],
@@ -38,39 +39,32 @@ export class Order {
             comment: ['']
         });
     }
-}
 
-ngOnInit() {
-    ymaps.ready(() => {
-        this.map = new ymaps.Map('map', {
-            center: [55.751244, 37.618423],
-            zoom: 5,
-            controls: ['zoomControl']
+    ngOnInit() {
+        ymaps.ready(() => {
+            this.map = new ymaps.Map('map', {
+                center: [55.751244, 37.618423],
+                zoom: 5,
+                controls: ['zoomControl']
+            });
+
+            // Подключаем подсказки адресов к полям от яндекса
+            (new ymaps.SuggestView('from')).events.add('select', (event: any) =>
+                (this.routeForm.controls['from'].setValue(event.get('item')?.value ?? ''))
+            );
+            (new ymaps.SuggestView('to')).events.add('select', (event: any) =>
+                (this.routeForm.controls['to'].setValue(event.get('item')?.value ?? ''))
+            );
         });
-
-        // Подключаем подсказки адресов к полям от яндекса
-        (new ymaps.SuggestView('from')).events.add('select', (event: any) => (this.routeForm.controls['from'].setValue(event.get('item')?.value ?? '')));
-        (new ymaps.SuggestView('to')).events.add('select', (event: any) => (this.routeForm.controls['to'].setValue(event.get('item')?.value ?? '')));
-    });
-}
-
-function ngOnInit(this: any) {
-    throw new Error('Function not implemented.');
+    }
 
     public selectSize(size: string) {
         this.routeForm.controls['size'].setValue(size);
     }
-}
-function selectSize(this: any, size: any, string: any) {
-    throw new Error('Function not implemented.');
 
     public selectSpeed(speed: string) {
         this.routeForm.controls['speed'].setValue(speed);
     }
-}
-
-function selectSpeed(speed: any, string: any) {
-    throw new Error('Function not implemented.');
 
     public calculate() {
         this.calculationResult.set(null);
@@ -101,7 +95,7 @@ function selectSpeed(speed: any, string: any) {
 
                 const km = activeRoute.properties.get('distance').value / 1000;
                 const sizeValue = size ?? '';
-                const sizeConfig = this.sizes.find((item) => item.value === sizeValue);
+                const sizeConfig = this.sizes.find((item: any) => item.value === sizeValue);
                 if (!sizeConfig) {
                     return this.failedCalculation();
                 }
@@ -135,6 +129,7 @@ function selectSpeed(speed: any, string: any) {
         this.calculationResult.set(null);
         alert('Не удалось построить маршрут. Проверьте адреса и выбранные параметры.');
     }
+
     public submitOrder() {
         const calculation = this.calculationResult();
         if (!calculation) {
@@ -158,8 +153,13 @@ function selectSpeed(speed: any, string: any) {
             createdAt: new Date().toISOString()
         };
 
-        console.log(payload);
-        this.orderId.set(1);
+        this.deliveryApi.createDelivery(payload).subscribe((response: any) => {
+            if ('error' in response) {
+                alert(response.error);
+                return;
+            }
+
+            this.orderId.set(response.id);
+        });
     }
 }
-

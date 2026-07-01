@@ -1,4 +1,3 @@
-<div class="container"></div>
 <app-header />
 <main class="track-content">
     <section class="track-card track-search">
@@ -54,8 +53,6 @@
         <div class="track-info">
             <div class="track-status-title">Статус данной посылки:</div>
             <div class="track-status-list" id="trackStatusList">
-
-
                 @for (status of trackResult()?.statuses; track status.type + status.date) {
                 <div class="track-status" [class]="status.type">
                     <img class="track-status-icon" [src]="'images/icons/' + status.type + '.svg'"
@@ -68,10 +65,5 @@
                 }
             </div>
         </div>
-
-        </div>
-        </div>
     </section>
-
 </main>
-</div>
